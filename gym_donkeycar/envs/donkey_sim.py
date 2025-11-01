@@ -113,8 +113,11 @@ class DonkeyUnitySimContoller:
     def exit_scene(self) -> None:
         self.handler.send_exit_scene()
 
-    def render(self, mode: str) -> None:
-        pass
+    def render(self, mode: str):
+        if(mode == "rgb_array" and self.handler.image_array is not None):
+            return np.array(self.handler.image_array, dtype=np.uint8)
+        else:
+            pass
 
     def is_game_over(self) -> bool:
         return self.handler.is_game_over()
@@ -189,6 +192,11 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.current_lap_time = 0.0
         self.starting_line_index = -1
         self.lap_count = 0
+
+        self.min_speed = 0.5
+        self.n_steps_low_speed = 0
+        self.n_steps = 0
+        self.last_throttle = 0.0
 
     def on_connect(self, client: SimClient) -> None:  # pytype: disable=signature-mismatch
         logger.debug("socket connected")
@@ -432,11 +440,18 @@ class DonkeyUnitySimHandler(IMesgHandler):
         self.pitch = 0.0
         self.yaw = 0.0
 
+        self.min_speed = 0.5
+        self.n_steps_low_speed = 0
+        self.n_steps = 0
+        self.last_throttle = 0.0
+
     def get_sensor_size(self) -> Tuple[int, int, int]:
         return self.camera_img_size
 
     def take_action(self, action: np.ndarray) -> None:
         self.send_control(action[0], action[1])
+        self.last_throttle = action[1]
+        self.n_steps += 1
 
     def observe(self) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
         while self.last_received == self.time_received:
@@ -618,6 +633,14 @@ class DonkeyUnitySimHandler(IMesgHandler):
         elif self.dq:
             logger.debug("disqualified")
             self.over = True
+        
+        if(abs(self.speed) < self.min_speed and self.n_steps > 4):
+            # print(f"ENTERING LOW SPEED: {self.n_steps_low_speed}")
+            self.n_steps_low_speed += 1
+            if self.n_steps_low_speed > 20:
+                self.over = True
+        else:
+            self.n_steps_low_speed = 0
 
         # Disable reset
         if os.environ.get("RACE") == "True":
