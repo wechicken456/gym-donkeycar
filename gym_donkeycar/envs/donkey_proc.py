@@ -13,7 +13,7 @@ class DonkeyUnityProcess:
 
     # ------ Launch Unity Env ----------- #
 
-    def start(self, sim_path: str, host: str = "0.0.0.0", port: int = 9091):
+    def start(self, sim_path: str, host: str = "0.0.0.0", port: int = 9091, headless: bool = False):
         if sim_path == "remote":
             return
 
@@ -24,7 +24,10 @@ class DonkeyUnityProcess:
         port_args = ["--port", str(port), "--host", str(host), "-logFile", "unitylog.txt"]
 
         # Launch Unity environment
-        self.proc1 = subprocess.Popen([sim_path] + port_args)
+        if(headless):
+            self.proc1 = subprocess.Popen([sim_path, '-no-graphics', '-batchmode'] + port_args)
+        else:
+            self.proc1 = subprocess.Popen([sim_path] + port_args)
 
         print("donkey subprocess started")
 

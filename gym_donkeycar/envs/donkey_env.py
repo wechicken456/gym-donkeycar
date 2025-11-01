@@ -37,6 +37,7 @@ def supply_defaults(conf: Dict[str, Any]) -> None:
         ("steer_limit", 1.0),
         ("throttle_min", 0.0),
         ("throttle_max", 1.0),
+        ("headless", False)
     ]
 
     for key, val in defaults:
@@ -82,7 +83,7 @@ class DonkeyEnv(gym.Env):
         if "exe_path" in conf:
             self.proc = DonkeyUnityProcess()
             # the unity sim server will bind to the host ip given
-            self.proc.start(conf["exe_path"], host="0.0.0.0", port=conf["port"])
+            self.proc.start(conf["exe_path"], host="0.0.0.0", port=conf["port"], headless=conf["headless"])
 
             # wait for simulator to startup and begin listening
             time.sleep(conf["start_delay"])
